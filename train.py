@@ -1,5 +1,5 @@
 import pandas as pd
-from models import *
+from network import *
 from tqdm import tqdm
 tqdm.pandas()
 from torch import nn
@@ -24,10 +24,10 @@ from utils import *
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--train_path', type=str, default='./data/train.csv')
-parser.add_argument('--dict_path', type=str, default="./phobert/dict.txt")
-parser.add_argument('--config_path', type=str, default="./phobert/config.json")
-parser.add_argument('--rdrsegmenter_path', type=str, required=True)
-parser.add_argument('--pretrained_path', type=str, default='./phobert/model.bin')
+parser.add_argument('--dict_path', type=str, default="/home/nobita/PhoBERT_base_transformers/dict.txt")
+parser.add_argument('--config_path', type=str, default="/home/nobita/PhoBERT_base_transformers/config.json")
+parser.add_argument('--rdrsegmenter_path', type=str, default='/home/nobita/vncorenlp/VnCoreNLP-1.1.1.jar')
+parser.add_argument('--pretrained_path', type=str, default='/home/nobita/PhoBERT_base_transformers/model.bin')
 parser.add_argument('--max_sequence_length', type=int, default=256)
 parser.add_argument('--batch_size', type=int, default=24)
 parser.add_argument('--accumulation_steps', type=int, default=5)
@@ -36,7 +36,7 @@ parser.add_argument('--fold', type=int, default=0)
 parser.add_argument('--seed', type=int, default=69)
 parser.add_argument('--lr', type=float, default=3e-5)
 parser.add_argument('--ckpt_path', type=str, default='./models')
-parser.add_argument('--bpe-codes', default="./phobert/bpe.codes",type=str, help='path to fastBPE BPE')
+parser.add_argument('--bpe-codes', default="/home/nobita/PhoBERT_base_transformers/bpe.codes",type=str, help='path to fastBPE BPE')
 
 args = parser.parse_args()
 bpe = fastBPE(args)
@@ -52,7 +52,7 @@ config = RobertaConfig.from_pretrained(
 )
 
 model_bert = RobertaForAIViVN.from_pretrained(args.pretrained_path, config=config)
-model_bert.cuda()
+# model_bert.cuda()  # run in gpu
 
 if torch.cuda.device_count():
     print(f"Training using {torch.cuda.device_count()} gpus")
@@ -90,18 +90,22 @@ splits = list(StratifiedKFold(n_splits=5, shuffle=True, random_state=123).split(
 for fold, (train_idx, val_idx) in enumerate(splits):
     print("Training for fold {}".format(fold))
     best_score = 0
+
     if fold != args.fold:
         continue
-    train_dataset = torch.utils.data.TensorDataset(torch.tensor(X_train[train_idx],dtype=torch.long), torch.tensor(y[train_idx],dtype=torch.long))
-    valid_dataset = torch.utils.data.TensorDataset(torch.tensor(X_train[val_idx],dtype=torch.long), torch.tensor(y[val_idx],dtype=torch.long))
-    tq = tqdm(range(args.epochs + 1))
-    for child in tsfm.children():
+
+    train_dataset = torch.utils.data.TensorDataset(torch.tensor(X_train[train_idx], dtype=torch.long), torch.tensor(y[train_idx],dtype=torch.long))
+    valid_dataset = torch.utils.data.TensorDataset(torch.tensor(X_train[val_idx], dtype=torch.long), torch.tensor(y[val_idx],dtype=torch.long))
+
+    # https://stackoverflow.com/questions/52465723/what-is-the-difference-between-parameters-and-children
+    for child in tsfm.children(): # init frozen BERT
         for param in child.parameters():
             if not param.requires_grad:
                 print("whoopsies")
             param.requires_grad = False
     frozen = True
-    for epoch in tq:
+
+    for epoch in range(args.epochs+1):
 
         if epoch > 0 and frozen:
             for child in tsfm.children():
@@ -109,37 +113,42 @@ for fold, (train_idx, val_idx) in enumerate(splits):
                     param.requires_grad = True
             frozen = False
             del scheduler0
-            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
 
         val_preds = []
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+        num_training_batches = len(train_loader)
         valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False)
+
         avg_loss = 0.
         avg_accuracy = 0.
 
         optimizer.zero_grad()
-        pbar = tqdm(enumerate(train_loader),total=len(train_loader),leave=False)
-        for i,(x_batch, y_batch) in pbar:
+        pbar = tqdm(enumerate(train_loader), total=num_training_batches)
+        for i, (x_batch, y_batch) in pbar:
             model_bert.train()
-            y_pred = model_bert(x_batch.cuda(), attention_mask=(x_batch>0).cuda())
-            loss =  F.binary_cross_entropy_with_logits(y_pred.view(-1).cuda(),y_batch.float().cuda())
-            loss = loss.mean()
+            # y_pred = model_bert(x_batch.cuda(), attention_mask=(x_batch>0).cuda())
+            y_pred = model_bert(x_batch, attention_mask=(x_batch > 0))
+            # loss =  F.binary_cross_entropy_with_logits(y_pred.view(-1).cuda(),y_batch.float().cuda())
+            loss = F.binary_cross_entropy_with_logits(y_pred.view(-1), y_batch.float())
+            loss = loss.mean() # https://discuss.pytorch.org/t/should-i-do-loss-backward-or-loss-mean-backward/35622
             loss.backward()
-            if i % args.accumulation_steps == 0 or i == len(pbar) - 1:
+            # only update gradient after args.accumulation_steps batches
+            if i % args.accumulation_steps == 0 or i == num_training_batches - 1:
                 optimizer.step()
                 optimizer.zero_grad()
                 if not frozen:
                     scheduler.step()
                 else:
                     scheduler0.step()
-            lossf = loss.item()
-            pbar.set_postfix(loss = lossf)
-            avg_loss += loss.item() / len(train_loader)
+            avg_loss += loss.item() / num_training_batches
+        print('epoch %d: loss = %.4f' % (epoch, avg_loss))
 
         model_bert.eval()
         pbar = tqdm(enumerate(valid_loader),total=len(valid_loader),leave=False)
-        for i,(x_batch, y_batch) in pbar:
-            y_pred = model_bert(x_batch.cuda(), attention_mask=(x_batch>0).cuda())
+        for i, (x_batch, y_batch) in pbar:
+            # y_pred = model_bert(x_batch.cuda(), attention_mask=(x_batch>0).cuda())
+            y_pred = model_bert(x_batch, attention_mask=(x_batch > 0))
             y_pred = y_pred.squeeze().detach().cpu().numpy()
             val_preds = np.concatenate([val_preds, np.atleast_1d(y_pred)])
         val_preds = sigmoid(val_preds)
