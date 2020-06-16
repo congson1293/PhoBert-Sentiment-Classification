@@ -78,6 +78,10 @@ class RobertaForAIViVN(BertPreTrainedModel):
 #                            token_type_ids=token_type_ids,
                             position_ids=position_ids,
                             head_mask=head_mask)
-       cls_output = torch.cat((outputs[2][-1][:,0, ...],outputs[2][-2][:,0, ...], outputs[2][-3][:,0, ...], outputs[2][-4][:,0, ...]),-1)
+       # ouputs[0]: last hidden layer
+       # outputs[1]: unkown :(
+       # ouputs[2]: all hiddend layers
+       cls_output = torch.cat((outputs[2][-1][:,0,:],outputs[2][-2][:,0,:], outputs[2][-3][:,0,:], outputs[2][-4][:,0,:]),-1)
        logits = self.qa_outputs(cls_output)
+
        return logits

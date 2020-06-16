@@ -1,5 +1,5 @@
 import pandas as pd
-from models import *
+from network import *
 from tqdm import tqdm
 tqdm.pandas()
 from torch import nn
