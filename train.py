@@ -2,25 +2,16 @@ import pandas as pd
 from network import *
 from tqdm import tqdm
 tqdm.pandas()
-from torch import nn
-import json
-import numpy as np
-import pickle
-import os
-from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
 from transformers import *
-import torch
-import matplotlib.pyplot as plt
-import torch.utils.data
-import torch.nn.functional as F
 import argparse
 from transformers.modeling_utils import * 
 from fairseq.data.encoders.fastbpe import fastBPE
 from fairseq.data import Dictionary
 from vncorenlp import VnCoreNLP
 from utils import *
+import torch
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--train_path', type=str, default='./data/train.csv')
@@ -68,7 +59,7 @@ vocab.add_from_file(args.dict_path)
 # Load training data
 train_df = pd.read_csv(args.train_path,sep='\t').fillna("###")
 print('Tokenize training data')
-# train_df.text = train_df.text.progress_apply(lambda x: ' '.join([' '.join(sent) for sent in rdrsegmenter.tokenize(x)]))
+train_df.text = train_df.text.progress_apply(lambda x: ' '.join([' '.join(sent) for sent in rdrsegmenter.tokenize(x)]))
 y = train_df.label.values
 X_train = convert_lines(train_df, vocab, bpe,args.max_sequence_length)
 
@@ -89,7 +80,7 @@ if not os.path.exists(args.ckpt_path):
 
 splits = list(StratifiedKFold(n_splits=5, shuffle=True, random_state=123).split(X_train, y))
 for fold, (train_idx, val_idx) in enumerate(splits):
-    print("Training for fold {}".format(fold))
+    print("Train fold {}".format(fold))
     best_score = 0
 
     if fold != args.fold:
@@ -132,7 +123,7 @@ for fold, (train_idx, val_idx) in enumerate(splits):
             y_pred = model_bert(x_batch, attention_mask=(x_batch > 0))
             # https://medium.com/@zhang_yang/how-is-pytorchs-binary-cross-entropy-with-logits-function-related-to-sigmoid-and-d3bd8fb080e7
             # loss =  F.binary_cross_entropy_with_logits(y_pred.view(-1).cuda(),y_batch.float().cuda())
-            loss = F.binary_cross_entropy_with_logits(y_pred.view(-1), y_batch.float())
+            loss = F.binary_cross_entropy(y_pred, y_batch.float())
             loss.backward()
             # only update gradient after args.accumulation_steps batches or last batch
             if i % args.accumulation_steps == 0 or i == num_training_batches - 1:
@@ -143,22 +134,24 @@ for fold, (train_idx, val_idx) in enumerate(splits):
                 else:
                     scheduler0.step()
             avg_loss += loss.item()
-            pbar.set_description('loss = %.4f' % (avg_loss/(i+1)))
-        avg_loss /= num_training_batches
-        print('epoch %d: loss = %.4f' % (epoch, avg_loss))
+            # y_pred = torch.sigmoid(y_pred).view(-1)
+            avg_accuracy += get_accuracy(y_batch, y_pred)
+            pbar.set_description('loss = %.4f - acc = %.4f' % (avg_loss / (i+1), avg_accuracy / (i+1)))
 
         model_bert.eval() # enable Bert evaluation mode
+        avg_val_loss = 0
+        avg_val_accuracy = 0
         pbar = tqdm(enumerate(valid_loader), total=len(valid_loader))
         for i, (x_batch, y_batch) in pbar:
             # y_pred = model_bert(x_batch.cuda(), attention_mask=(x_batch>0).cuda())
             y_pred = model_bert(x_batch, attention_mask=(x_batch > 0))
-            y_pred = y_pred.squeeze().detach().cpu().numpy()
-            val_preds = np.concatenate([val_preds, np.atleast_1d(y_pred)])
-        val_preds = sigmoid(val_preds)
+            loss = F.binary_cross_entropy(y_pred, y_batch.float())
+            avg_loss += loss.item()
+            avg_accuracy += get_accuracy(y_batch, y_pred)
+            pbar.set_description('val_loss = %.4f - val_acc = %.4f' % (avg_val_loss / (i + 1), avg_val_accuracy / (i + 1)))
 
         best_th = 0
-        score = f1_score(y[val_idx], val_preds > 0.5)
-        print(f"\nAUC = {roc_auc_score(y[val_idx], val_preds):.4f}, F1 score @0.5 = {score:.4f}")
+        score = avg_val_accuracy / len(valid_loader)
         if score >= best_score:
             torch.save(model_bert.state_dict(),os.path.join(args.ckpt_path, f"model_{fold}.bin"))
             best_score = score

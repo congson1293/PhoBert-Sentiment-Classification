@@ -6,6 +6,7 @@ import numpy as np
 import pickle
 import os
 import torch
+from sklearn.metrics import f1_score, accuracy_score
 
 def convert_lines(df, vocab, bpe, max_sequence_length):
     outputs = np.zeros((len(df), max_sequence_length))
@@ -35,3 +36,16 @@ def seed_everything(SEED):
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
+
+def get_f1_score(y_true, y_pred):
+    new_y_true = y_true.squeeze().detach().cpu().numpy()
+    new_y_pred = y_pred.squeeze().detach().cpu().numpy() > 0.5
+    new_y_pred = list(map(lambda x: int(x), new_y_pred))
+    return f1_score(new_y_true, new_y_pred, average='binary')
+
+
+def get_accuracy(y_true, y_pred):
+    new_y_true = y_true.squeeze().detach().cpu().numpy()
+    new_y_pred = y_pred.squeeze().detach().cpu().numpy() > 0.5
+    new_y_pred = list(map(lambda x: int(x), new_y_pred))
+    return accuracy_score(new_y_true, new_y_pred)
