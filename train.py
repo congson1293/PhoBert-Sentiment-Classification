@@ -68,7 +68,7 @@ vocab.add_from_file(args.dict_path)
 # Load training data
 train_df = pd.read_csv(args.train_path,sep='\t').fillna("###")
 print('Tokenize training data')
-# train_df.text = train_df.text.progress_apply(lambda x: ' '.join([' '.join(sent) for sent in rdrsegmenter.tokenize(x)]))
+train_df.text = train_df.text.progress_apply(lambda x: ' '.join([' '.join(sent) for sent in rdrsegmenter.tokenize(x)]))
 y = train_df.label.values
 X_train = convert_lines(train_df, vocab, bpe,args.max_sequence_length)
 
@@ -127,7 +127,7 @@ for fold, (train_idx, val_idx) in enumerate(splits):
         optimizer.zero_grad()
         pbar = tqdm(enumerate(train_loader), total=num_training_batches)
         for i, (x_batch, y_batch) in pbar:
-            model_bert.train()
+            model_bert.train() # enable Bert training mode
             # y_pred = model_bert(x_batch.cuda(), attention_mask=(x_batch>0).cuda())
             y_pred = model_bert(x_batch, attention_mask=(x_batch > 0))
             # https://medium.com/@zhang_yang/how-is-pytorchs-binary-cross-entropy-with-logits-function-related-to-sigmoid-and-d3bd8fb080e7
@@ -144,10 +144,10 @@ for fold, (train_idx, val_idx) in enumerate(splits):
                 else:
                     scheduler0.step()
             avg_loss += loss.item() / num_training_batches
-            break
+            if i == 5: break
         print('epoch %d: loss = %.4f' % (epoch, avg_loss))
 
-        model_bert.eval()
+        model_bert.eval() # enable Bert evaluation mode
         pbar = tqdm(enumerate(valid_loader), total=len(valid_loader))
         for i, (x_batch, y_batch) in pbar:
             # y_pred = model_bert(x_batch.cuda(), attention_mask=(x_batch>0).cuda())
