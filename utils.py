@@ -11,14 +11,14 @@ from sklearn.metrics import f1_score, accuracy_score
 def convert_lines(df, vocab, bpe, max_sequence_length):
     outputs = np.zeros((len(df), max_sequence_length))
     
-    cls_id = 0
-    eos_id = 2
+    cls_id = 0 # <s>
+    eos_id = 2 # </s>
     pad_id = 1
 
     pbar = tqdm(df.iterrows(), total=len(df))
     pbar.set_description("BPE encode")
     for idx, row in pbar:
-        subwords = bpe.encode('<s> '+row.text+' </s>')
+        subwords = bpe.encode('<s> ' + row.text + ' </s>')
         input_ids = vocab.encode_line(subwords, append_eos=False, add_if_not_exist=False).long().tolist()
         if len(input_ids) > max_sequence_length: 
             input_ids = input_ids[:max_sequence_length] 
