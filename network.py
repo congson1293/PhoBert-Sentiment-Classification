@@ -72,7 +72,7 @@ class RobertaForAIViVN(BertPreTrainedModel):
 
    def forward(self, input_ids, attention_mask=None, token_type_ids=None, position_ids=None, head_mask=None,
                 start_positions=None, end_positions=None):
-
+       # phoBERT's input is 2D tensor (batch_size, max_seq_len)
        outputs = self.roberta(input_ids,
                             attention_mask=attention_mask,
 #                            token_type_ids=token_type_ids,
