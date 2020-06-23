@@ -140,7 +140,7 @@ for fold, (train_idx, val_idx) in enumerate(splits):
             # y_pred = torch.sigmoid(y_pred).view(-1)
             avg_accuracy += get_accuracy(y_batch, y_pred)
             pbar.set_description('[epoch %d] loss = %.4f - acc = %.4f' % (epoch, avg_loss / (i+1), avg_accuracy / (i+1)))
-            break
+
         model_bert.eval() # enable Bert evaluation mode
         avg_val_loss = 0
         avg_val_accuracy = 0
