@@ -158,3 +158,4 @@ for fold, (train_idx, val_idx) in enumerate(splits):
         if score >= best_score:
             torch.save(model_bert.state_dict(),os.path.join(args.ckpt_path, f"model_{fold}.bin"))
             best_score = score
+    break
