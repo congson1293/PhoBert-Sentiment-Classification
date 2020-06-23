@@ -123,7 +123,7 @@ for fold, (train_idx, val_idx) in enumerate(splits):
         for i, (x_batch, y_batch) in pbar:
             model_bert.train() # enable Bert training mode
             # y_pred = model_bert(x_batch.cuda(), attention_mask=(x_batch>0).cuda())
-            y_pred = model_bert(x_batch, attention_mask=(x_batch > 0))
+            y_pred = model_bert(x_batch, attention_mask=(x_batch != 1))
             # https://medium.com/@zhang_yang/how-is-pytorchs-binary-cross-entropy-with-logits-function-related-to-sigmoid-and-d3bd8fb080e7
             # loss =  F.binary_cross_entropy_with_logits(y_pred.view(-1).cuda(),y_batch.float().cuda())
             loss = F.binary_cross_entropy(y_pred, y_batch.float())
@@ -139,19 +139,19 @@ for fold, (train_idx, val_idx) in enumerate(splits):
             avg_loss += loss.item()
             # y_pred = torch.sigmoid(y_pred).view(-1)
             avg_accuracy += get_accuracy(y_batch, y_pred)
-            pbar.set_description('loss = %.4f - acc = %.4f' % (avg_loss / (i+1), avg_accuracy / (i+1)))
-
+            pbar.set_description('[epoch %d] loss = %.4f - acc = %.4f' % (epoch, avg_loss / (i+1), avg_accuracy / (i+1)))
+            break
         model_bert.eval() # enable Bert evaluation mode
         avg_val_loss = 0
         avg_val_accuracy = 0
         pbar = tqdm(enumerate(valid_loader), total=len(valid_loader))
         for i, (x_batch, y_batch) in pbar:
             # y_pred = model_bert(x_batch.cuda(), attention_mask=(x_batch>0).cuda())
-            y_pred = model_bert(x_batch, attention_mask=(x_batch > 0))
+            y_pred = model_bert(x_batch, attention_mask=(x_batch != 1))
             loss = F.binary_cross_entropy(y_pred, y_batch.float())
-            avg_loss += loss.item()
-            avg_accuracy += get_accuracy(y_batch, y_pred)
-            pbar.set_description('val_loss = %.4f - val_acc = %.4f' % (avg_val_loss / (i + 1), avg_val_accuracy / (i + 1)))
+            avg_val_loss += loss.item()
+            avg_val_accuracy += get_accuracy(y_batch, y_pred)
+            pbar.set_description('[epoch %d] val_loss = %.4f - val_acc = %.4f' % (epoch, avg_val_loss / (i + 1), avg_val_accuracy / (i + 1)))
 
         best_th = 0
         score = avg_val_accuracy / len(valid_loader)

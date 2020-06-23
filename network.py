@@ -70,6 +70,11 @@ class RobertaForAIViVN(BertPreTrainedModel):
 
        self.init_weights()
 
+   '''
+   https://huggingface.co/transformers/glossary.html#attention-mask
+   https://huggingface.co/transformers/glossary.html#position-ids
+   https://huggingface.co/transformers/glossary.html#token-type-ids
+   '''
    def forward(self, input_ids, attention_mask=None, token_type_ids=None, position_ids=None, head_mask=None,
                 start_positions=None, end_positions=None):
        # phoBERT's input is 2D tensor (batch_size, max_seq_len)
