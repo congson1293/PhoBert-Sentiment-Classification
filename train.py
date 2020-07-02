@@ -62,7 +62,7 @@ vocab.add_from_file(args.dict_path)
 # Load training data
 train_df = pd.read_csv(args.train_path,sep='\t').fillna("###")
 print('Tokenize training data')
-# train_df.text = train_df.text.progress_apply(lambda x: ' '.join([' '.join(sent) for sent in rdrsegmenter.tokenize(x)]))
+train_df.text = train_df.text.progress_apply(lambda x: ' '.join([' '.join(sent) for sent in rdrsegmenter.tokenize(x)]))
 y = train_df.label.values
 X_train = convert_lines(train_df, vocab, bpe,args.max_sequence_length)
 
