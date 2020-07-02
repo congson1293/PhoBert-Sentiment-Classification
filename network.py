@@ -67,7 +67,7 @@ class RobertaForAIViVN(BertPreTrainedModel):
        self.num_labels = config.num_labels
        self.roberta = RobertaModel(config)
        self.qa_outputs = nn.Linear(4*config.hidden_size, self.num_labels)
-
+       self.norm = Norm(4*config.hidden_size)
        self.init_weights()
 
    '''
@@ -86,6 +86,31 @@ class RobertaForAIViVN(BertPreTrainedModel):
        # ouputs[0]: last hidden layer
        # outputs[1]: unkown :(
        # ouputs[2]: all hiddend layers
-       cls_output = torch.cat((outputs[2][-1][:,0,:],outputs[2][-2][:,0,:], outputs[2][-3][:,0,:], outputs[2][-4][:,0,:]),-1)
+       cls_output = torch.cat((outputs[2][-1][:,0,:],outputs[2][-2][:,0,:], outputs[2][-3][:,0,:], outputs[2][-4][:,0,:]), -1)
+       x = self.norm(cls_output)
        logits = self.qa_outputs(cls_output)
        return torch.sigmoid(logits).view(-1)
+
+
+class Norm(nn.Module):
+    def __init__(self, d_model, eps=1e-6):
+        super().__init__()
+
+        self.size = d_model
+        # create two learnable parameters to calibrate normalisationa
+        # model will return alpha and bias when call parameter() method
+        self.alpha = nn.Parameter(torch.ones(self.size))
+        self.bias = nn.Parameter(torch.zeros(self.size))
+        self.eps = eps
+
+    def forward(self, x):
+        norm = self.alpha * (x - x.mean(dim=-1, keepdim=True)) \
+               / (x.std(dim=-1, keepdim=True) + self.eps) + self.bias
+        return norm
+
+
+if __name__ == '__main__':
+    x = Norm(128)
+    xx = list(x.named_parameters())
+    print(xx)
+    pass

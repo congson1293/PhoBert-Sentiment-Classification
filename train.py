@@ -38,7 +38,7 @@ seed_everything(69)
 # Load model
 config = RobertaConfig.from_pretrained(
     args.config_path,
-    output_hidden_states=True, # enable hidden states of B
+    output_hidden_states=True, # enable hidden states of Bert
     # customize param, number of labels. In this project, we have 2 labels but we use
     # sigmoid at output layer so we compare sigmoid output to 0.5 to convert to labels
     # => set num_labels is 1
@@ -62,7 +62,7 @@ vocab.add_from_file(args.dict_path)
 # Load training data
 train_df = pd.read_csv(args.train_path,sep='\t').fillna("###")
 print('Tokenize training data')
-train_df.text = train_df.text.progress_apply(lambda x: ' '.join([' '.join(sent) for sent in rdrsegmenter.tokenize(x)]))
+# train_df.text = train_df.text.progress_apply(lambda x: ' '.join([' '.join(sent) for sent in rdrsegmenter.tokenize(x)]))
 y = train_df.label.values
 X_train = convert_lines(train_df, vocab, bpe,args.max_sequence_length)
 
