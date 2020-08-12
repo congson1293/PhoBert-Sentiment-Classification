@@ -68,6 +68,7 @@ class RobertaForAIViVN(BertPreTrainedModel):
        self.roberta = RobertaModel(config)
        self.qa_outputs = nn.Linear(4*config.hidden_size, self.num_labels)
        self.norm = Norm(4*config.hidden_size)
+
        self.init_weights()
 
    '''
@@ -85,13 +86,15 @@ class RobertaForAIViVN(BertPreTrainedModel):
                             head_mask=head_mask)
        # ouputs[0]: last hidden layer
        # outputs[1]: unkown :(
-       # ouputs[2]: all hiddend layers
+       # ouputs[2]: all hidden layers
+       # get [CLS] of 4 last hidden layer
        cls_output = torch.cat((outputs[2][-1][:,0,:],outputs[2][-2][:,0,:], outputs[2][-3][:,0,:], outputs[2][-4][:,0,:]), -1)
-       x = self.norm(cls_output)
-       logits = self.qa_outputs(cls_output)
+       cls_output_norm = self.norm(cls_output)
+       logits = self.qa_outputs(cls_output_norm)
        return torch.sigmoid(logits).view(-1)
 
 
+# batch normalized layer
 class Norm(nn.Module):
     def __init__(self, d_model, eps=1e-6):
         super().__init__()

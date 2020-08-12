@@ -65,6 +65,7 @@ preds_en = []
 for fold in range(5):
     print(f"Predicting for fold {fold}")
     preds_fold = []
+    # load model
     model_bert.load_state_dict(torch.load(os.path.join(args.ckpt_path, f"model_{fold}.bin")))
     test_dataset = torch.utils.data.TensorDataset(torch.tensor(X_test,dtype=torch.long))
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)

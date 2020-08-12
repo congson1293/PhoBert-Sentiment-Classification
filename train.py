@@ -41,7 +41,7 @@ config = RobertaConfig.from_pretrained(
     output_hidden_states=True, # enable hidden states of Bert
     # customize param, number of labels. In this project, we have 2 labels but we use
     # sigmoid at output layer so we compare sigmoid output to 0.5 to convert to labels
-    # => set num_labels is 1
+    # ==> set num_labels is 1
     num_labels=1
 )
 
@@ -64,7 +64,7 @@ train_df = pd.read_csv(args.train_path,sep='\t').fillna("###")
 print('Tokenize training data')
 train_df.text = train_df.text.progress_apply(lambda x: ' '.join([' '.join(sent) for sent in rdrsegmenter.tokenize(x)]))
 y = train_df.label.values
-X_train = convert_lines(train_df, vocab, bpe,args.max_sequence_length)
+X_train = convert_lines(train_df, vocab, bpe, args.max_sequence_length)
 
 # Creating optimizer and lr schedulers
 param_optimizer = list(model_bert.named_parameters())
@@ -75,8 +75,9 @@ optimizer_grouped_parameters = [
 ]
 num_train_optimization_steps = int(args.epochs*len(train_df)/args.batch_size/args.accumulation_steps)
 optimizer = AdamW(optimizer_grouped_parameters, lr=args.lr, correct_bias=False)  # To reproduce BertAdam specific behavior set correct_bias=False
+# Create a schedule with a learning rate that decreases linearly after linearly increasing during a warmup period.
 scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=100, num_training_steps=num_train_optimization_steps)  # PyTorch scheduler
-scheduler0 = get_constant_schedule(optimizer)  # PyTorch scheduler
+scheduler0 = get_constant_schedule(optimizer)  # PyTorch scheduler. Create a schedule with a constant learning rate.
 
 if not os.path.exists(args.ckpt_path):
     os.mkdir(args.ckpt_path)
