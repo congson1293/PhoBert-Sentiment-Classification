@@ -31,7 +31,7 @@ parser.add_argument('--bpe-codes', default="/home/nobita/PhoBERT_base_transforme
 
 args = parser.parse_args()
 bpe = fastBPE(args)
-rdrsegmenter = VnCoreNLP(args.rdrsegmenter_path, annotators="wseg", max_heap_size='-Xmx500m') 
+rdrsegmenter = VnCoreNLP(args.rdrsegmenter_path, annotators="wseg", max_heap_size='-Xmx500m', port=9000)
 
 seed_everything(69)
 
@@ -63,7 +63,7 @@ vocab.add_from_file(args.dict_path)
 train_df = pd.read_csv(args.train_path,sep='\t').fillna("###")
 print('Tokenize training data')
 train_df.text = train_df.text.progress_apply(lambda x: ' '.join([' '.join(sent) for sent in rdrsegmenter.tokenize(x)]))
-y = train_df.label.values
+y_train = train_df.label.values
 X_train = convert_lines(train_df, vocab, bpe, args.max_sequence_length)
 
 # Creating optimizer and lr schedulers
@@ -82,7 +82,7 @@ scheduler0 = get_constant_schedule(optimizer)  # PyTorch scheduler. Create a sch
 if not os.path.exists(args.ckpt_path):
     os.mkdir(args.ckpt_path)
 
-splits = list(StratifiedKFold(n_splits=5, shuffle=True, random_state=123).split(X_train, y))
+splits = list(StratifiedKFold(n_splits=5, shuffle=True, random_state=123).split(X_train, y_train))
 for fold, (train_idx, val_idx) in enumerate(splits):
     print("Train fold {}".format(fold))
     best_score = 0
@@ -90,8 +90,8 @@ for fold, (train_idx, val_idx) in enumerate(splits):
     if fold != args.fold:
         continue
 
-    train_dataset = torch.utils.data.TensorDataset(torch.tensor(X_train[train_idx], dtype=torch.long), torch.tensor(y[train_idx],dtype=torch.long))
-    valid_dataset = torch.utils.data.TensorDataset(torch.tensor(X_train[val_idx], dtype=torch.long), torch.tensor(y[val_idx],dtype=torch.long))
+    train_dataset = torch.utils.data.TensorDataset(torch.tensor(X_train[train_idx], dtype=torch.long), torch.tensor(y_train[train_idx], dtype=torch.long))
+    valid_dataset = torch.utils.data.TensorDataset(torch.tensor(X_train[val_idx], dtype=torch.long), torch.tensor(y_train[val_idx], dtype=torch.long))
 
     # https://stackoverflow.com/questions/52465723/what-is-the-difference-between-parameters-and-children
     for child in tsfm.children(): # init frozen BERT
