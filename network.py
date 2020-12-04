@@ -37,4 +37,4 @@ class RobertaForAIViVN(BertPreTrainedModel):
         cls_output = torch.cat(
             (outputs[2][-1][:, 0, :], outputs[2][-2][:, 0, :], outputs[2][-3][:, 0, :], outputs[2][-4][:, 0, :]), -1)
         logits = self.qa_outputs(cls_output)
-        return torch.sigmoid(logits).view(-1)
+        return torch.sigmoid(logits).view(-1) # convert tensor 3D to tensor 2D

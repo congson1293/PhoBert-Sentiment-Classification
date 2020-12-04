@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="4e5f6978-e05d-4f18-afdb-e28ac1fa1f6f" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/network.py" beforeDir="false" afterPath="$PROJECT_DIR$/network.py" afterDir="false" />
-    </list>
+    <list default="true" id="4e5f6978-e05d-4f18-afdb-e28ac1fa1f6f" name="Default" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -181,6 +179,7 @@
       <option name="presentableId" value="Default" />
       <updated>1591841929611</updated>
       <workItem from="1607067075730" duration="3481000" />
+      <workItem from="1607070577960" duration="39000" />
     </task>
     <servers />
   </component>
