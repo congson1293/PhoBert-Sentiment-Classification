@@ -13,7 +13,7 @@ class RobertaForAIViVN(BertPreTrainedModel):
         self.roberta = RobertaModel(config)
         self.qa_outputs = nn.Linear(4 * config.hidden_size, self.num_labels)
 
-        self.init_weights()
+        self.init_weights() # https://github.com/huggingface/transformers/issues/4701
 
 
     '''
