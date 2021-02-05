@@ -2,53 +2,35 @@ import pandas as pd
 from network import *
 from tqdm import tqdm
 tqdm.pandas()
-from torch import nn
-import json
-import numpy as np
-import pickle
-import os
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
 from transformers import *
-import torch
-import matplotlib.pyplot as plt
 import torch.utils.data
-import torch.nn.functional as F
 import argparse
-from transformers.modeling_utils import * 
-from fairseq.data.encoders.fastbpe import fastBPE
-from fairseq.data import Dictionary
+from transformers.modeling_utils import *
 from vncorenlp import VnCoreNLP
 from utils import * 
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--test_path', type=str, default='./data/test.csv')
-parser.add_argument('--dict_path', type=str, default="/home/nobita/PhoBERT_base_transformers/dict.txt")
-parser.add_argument('--config_path', type=str, default="/home/nobita/PhoBERT_base_transformers/config.json")
 parser.add_argument('--rdrsegmenter_path', type=str, default='/home/nobita/vncorenlp/VnCoreNLP-1.1.1.jar')
-parser.add_argument('--pretrained_path', type=str, default='/home/nobita/PhoBERT_base_transformers/model.bin')
 parser.add_argument('--max_sequence_length', type=int, default=256)
 parser.add_argument('--batch_size', type=int, default=48)
 parser.add_argument('--ckpt_path', type=str, default='./models')
-parser.add_argument('--bpe-codes', default="/home/nobita/PhoBERT_base_transformers/bpe.codes",type=str, help='path to fastBPE BPE')
+parser.add_argument('-no_cuda', action='store_true')
 
 args = parser.parse_args()
-bpe = fastBPE(args)
+
+args.device = 'cuda' if args.no_cuda is False else 'cpu'
+if args.device == 'cuda':
+    assert torch.cuda.is_available()
+
+tokenizer = PhobertTokenizer.from_pretrained('vinai/phobert-base')
 rdrsegmenter = VnCoreNLP(args.rdrsegmenter_path, annotators="wseg", max_heap_size='-Xmx500m') 
 
 # Load model
-config = RobertaConfig.from_pretrained(
-    args.config_path,
-    output_hidden_states=True,
-    num_labels=1
-)
-model_bert = RobertaForAIViVN.from_pretrained(args.pretrained_path, config=config)
-model_bert.cuda()
-
-# Load the dictionary  
-vocab = Dictionary()
-vocab.add_from_file(args.dict_path)
+model_bert = RobertaForAIViVN.from_pretrained('vinai/phobert-base',
+                                              output_hidden_states=True,
+                                              num_labels=1)
+model_bert.to(args.device)
 
 if torch.cuda.device_count():
     print(f"Testing using {torch.cuda.device_count()} gpus")
@@ -59,7 +41,7 @@ else:
 
 test_df = pd.read_csv(args.test_path,sep='\t').fillna("###")
 test_df.text = test_df.text.progress_apply(lambda x: ' '.join([' '.join(sent) for sent in rdrsegmenter.tokenize(x)]))
-X_test = convert_lines(test_df, vocab, bpe,args.max_sequence_length)
+X_test = convert_lines(test_df, tokenizer, args.max_sequence_length)
 
 preds_en = []
 for fold in range(5):

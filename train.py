@@ -15,7 +15,6 @@ from torch.utils.data import DataLoader, TensorDataset
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--train_path', type=str, default='./data/train.csv')
-parser.add_argument('--dict_path', type=str, default="/mnt/data/nobita/PhoBERT_base_transformers/dict.txt")
 parser.add_argument('--rdrsegmenter_path', type=str, default='/mnt/data/nobita/vncorenlp/VnCoreNLP-1.1.1.jar')
 parser.add_argument('--max_sequence_length', type=int, default=256)
 parser.add_argument('--batch_size', type=int, default=24)
