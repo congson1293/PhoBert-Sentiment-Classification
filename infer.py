@@ -9,7 +9,7 @@ from transformers.modeling_utils import *
 from vncorenlp import VnCoreNLP
 from utils import * 
 
-parser = argparse.ArgumentParser(description='Process some integers.')
+parser = argparse.ArgumentParser(description='Argument Parser')
 parser.add_argument('--test_path', type=str, default='./data/test.csv')
 parser.add_argument('--rdrsegmenter_path', type=str, default='/home/nobita/vncorenlp/VnCoreNLP-1.1.1.jar')
 parser.add_argument('--max_sequence_length', type=int, default=256)

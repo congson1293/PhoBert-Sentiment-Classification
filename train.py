@@ -13,7 +13,7 @@ from utils import *
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
-parser = argparse.ArgumentParser(description='Process some integers.')
+parser = argparse.ArgumentParser(description='Argument Parser')
 parser.add_argument('--train_path', type=str, default='./data/train.csv')
 parser.add_argument('--rdrsegmenter_path', type=str, default='/mnt/data/nobita/vncorenlp/VnCoreNLP-1.1.1.jar')
 parser.add_argument('--max_sequence_length', type=int, default=256)
