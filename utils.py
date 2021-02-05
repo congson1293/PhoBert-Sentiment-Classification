@@ -8,7 +8,7 @@ import os
 import torch
 from sklearn.metrics import f1_score, accuracy_score
 
-def convert_lines(df, vocab, bpe, max_seq_length):
+def convert_lines(df, tokenizer, max_seq_length):
     outputs = np.zeros((len(df), max_seq_length))
     
     cls_id = 0 # <s>
@@ -18,8 +18,7 @@ def convert_lines(df, vocab, bpe, max_seq_length):
     pbar = tqdm(df.iterrows(), total=len(df))
     pbar.set_description("BPE encode")
     for idx, row in pbar:
-        subwords = '<s> ' + bpe.encode(row.text) + ' </s>'
-        input_ids = vocab.encode_line(subwords, append_eos=False, add_if_not_exist=False).long().tolist()
+        input_ids = tokenizer.encode(row.text, add_special_tokens=True)  # add <s> and </s>
         if len(input_ids) > max_seq_length:
             input_ids = input_ids[:max_seq_length]
             input_ids[-1] = eos_id
