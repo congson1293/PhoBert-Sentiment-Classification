@@ -7,7 +7,6 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 from transformers import *
 import argparse
 from transformers.modeling_utils import *
-from fairseq.data import Dictionary
 from vncorenlp import VnCoreNLP
 from utils import *
 import torch
@@ -49,10 +48,6 @@ if torch.cuda.device_count():
     tsfm = model_bert.module.roberta
 else:
     tsfm = model_bert.roberta
-
-# Load the dictionary  
-vocab = Dictionary()
-vocab.add_from_file(args.dict_path)
 
 # Load training data
 train_df = pd.read_csv(args.train_path,sep='\t').fillna("###")
