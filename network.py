@@ -26,7 +26,7 @@ class RobertaForAIViVN(BertPreTrainedModel):
         # phoBERT's input is 2D tensor (batch_size, max_seq_len)
         outputs = self.roberta(input_ids,
                                attention_mask=attention_mask,
-                               #                            token_type_ids=token_type_ids,
+                               # token_type_ids=token_type_ids,
                                position_ids=position_ids,
                                head_mask=head_mask)
         # ouputs[0]: last hidden layer
