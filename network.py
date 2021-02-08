@@ -28,7 +28,7 @@ class RobertaForAIViVN(BertPreTrainedModel):
                                attention_mask=attention_mask,
                                # token_type_ids=token_type_ids,
                                position_ids=position_ids,
-                               head_mask=head_mask)
+                               head_mask=head_mask) # [batch_size, max_seq_len, 768]
         # ouputs[0]: last hidden layer
         # outputs[1]: unknow :(
         # ouputs[2]: all hidden layers

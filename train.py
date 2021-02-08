@@ -23,7 +23,7 @@ parser.add_argument('--fold', type=int, default=0)
 parser.add_argument('--seed', type=int, default=2021)
 parser.add_argument('--lr', type=float, default=3e-5)
 parser.add_argument('--ckpt_path', type=str, default='./models')
-parser.add_argument('-no_cuda', action='store_true')
+parser.add_argument('--no_cuda', action='store_true')
 
 args = parser.parse_args()
 
@@ -52,11 +52,12 @@ else:
 # Load training data
 train_df = pd.read_csv(args.train_path,sep='\t').fillna("###")
 print('Tokenize training data')
-train_df.text = train_df.text.progress_apply(lambda x: ' '.join([' '.join(sent) for sent in rdrsegmenter.tokenize(x)]))
+# train_df.text = train_df.text.progress_apply(lambda x: ' '.join([' '.join(sent) for sent in rdrsegmenter.tokenize(x)]))
 y_train = train_df.label.values
 X_train = convert_lines(train_df, tokenizer, args.max_sequence_length)
 
 # Creating optimizer and lr schedulers
+# https://discuss.pytorch.org/t/what-is-the-difference-between-named-children-and-children-similarly-for-parameters-vs-named-parameters/38806
 param_optimizer = list(model_bert.named_parameters())
 no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
 optimizer_grouped_parameters = [
